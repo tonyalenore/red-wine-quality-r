@@ -1,0 +1,92 @@
+---
+title: "Red Wine Quality"
+author: "Tonya MacDonald"
+date: "2/21/2021"
+output: html_document
+---
+
+```{r, warning=FALSE,message=FALSE,error=FALSE, echo=FALSE}
+
+if (!require("pacman")) { 
+  install.packages("pacman") 
+}
+pacman::p_load(knitr,tidyverse, skimr, GGally, plotly, viridis, caret, randomForest, e1071, rpart, xgboost, h2o, corrplot, rpart.plot, corrgram, lightgbm, visNetwork, ggthemes)
+
+fig <- function(width, heigth){
+    options(repr.plot.width = width, repr.plot.height = heigth)
+}
+```
+
+```{r  message=FALSE, warning=FALSE}
+
+wine <- read.csv("data/winequality-red.csv")
+
+```
+
+```{r}
+
+wine %>% skim() %>% kable()
+
+```
+
+```{r}
+
+wine %>% cor() %>% corrplot.mixed(upper = "square", lower = "square", tl.cex=.8, tl.pos = 'lt', number.cex = .8)
+
+```
+
+```{r  message=FALSE, warning=FALSE}
+
+wine$quality <- as.factor(wine$quality)
+
+fig(13,13)
+ggpairs(wine %>% select(-quality)
+        , aes(color = wine$quality, alpha=0.2)
+        , columns=1:11
+        , lower=list(continuous="points", alpha = 0.7, size = 0.3)
+        , upper=list(continuous="blank")
+        , axisLabels="none"
+        , switch="both") + theme_light() +
+    ggthemes::scale_color_tableau() + 
+    ggthemes::scale_fill_tableau()
+    
+
+```
+
+```{r}
+
+set.seed(1)
+
+inTrain <- createDataPartition(wine$quality, p=.8, list = F)
+
+train <- wine[inTrain,]
+
+valid <- wine[-inTrain,]
+
+rm(inTrain)
+
+```
+
+```{r}
+# randomforest
+
+set.seed(1)
+
+rf_model <- randomForest(quality ~ alcohol + volatile.acidity + citric.acid + density + pH + sulphates
+                         ,train)
+
+rf_result <- predict(rf_model
+                     , newdata = valid[,!colnames(valid) %in% c("quality")])
+
+confusionMatrix(rf_result, valid$quality)
+```
+
+```{r}
+varImp(rf_model) %>% kable()
+
+varImpPlot(rf_model)
+```
+
+```{r}
+
+```
